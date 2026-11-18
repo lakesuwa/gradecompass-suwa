@@ -13,12 +13,10 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { openDemo } from '$lib/demo/demo.svelte';
 	import { StudentAccount } from '$lib/synergy';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import LogInIcon from '@lucide/svelte/icons/log-in';
-	import PowerIcon from '@lucide/svelte/icons/power';
 	import { fly } from 'svelte/transition';
 
 	if (browser && localStorage.getItem(LocalStorageKey.token) !== null) {
@@ -80,8 +78,6 @@
 	function openDomainDialog() {
 		domainDialogOpen = true;
 	}
-
-	const disabled = true;
 </script>
 
 <svelte:head>
@@ -113,18 +109,6 @@
 				<h1 class="text-xl font-bold">Log in to {brand}</h1>
 			</div>
 
-			<Alert.Root variant="destructive" class="mb-4">
-				<PowerIcon />
-				<Alert.Title>GradeCompass is now obsolete.</Alert.Title>
-				<Alert.Description>
-					You will see a deprecation notice if you try to log in.
-					<p>
-						<a href="/obsolete" class="underline">Learn more</a> •
-						<button class="cursor-pointer underline" onclick={openDemo}>Open demo</button>
-					</p>
-				</Alert.Description>
-			</Alert.Root>
-
 			<div class="relative">
 				<Field.Group>
 					<Field.Field>
@@ -149,8 +133,8 @@
 							required
 						/>
 						<Field.Description>
-							Your device connected directly to the portal. We couldn't see your password or your
-							grades.
+							Your login is relayed to your district's portal through this site's server. Nothing is
+							stored or logged.
 						</Field.Description>
 					</Field.Field>
 
@@ -214,10 +198,6 @@
 						</Button>
 					</Field.Field>
 				</Field.Group>
-
-				{#if disabled}
-					<div class="absolute -inset-2 backdrop-blur-xs" aria-hidden="true"></div>
-				{/if}
 			</div>
 		</form>
 	</main>
