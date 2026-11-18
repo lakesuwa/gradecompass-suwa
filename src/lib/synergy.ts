@@ -33,6 +33,7 @@ type MethodName = (typeof MethodName)[keyof typeof MethodName];
 const alwaysArray = [
 	'Gradebook.Courses.Course',
 	'Gradebook.Courses.Course.Marks.Mark',
+	'Gradebook.Courses.Course.Marks.Mark.GradeCalculationSummary.AssignmentGradeCalc',
 	'Gradebook.Courses.Course.Marks.Mark.Assignments.Assignment',
 	'Gradebook.Courses.Course.Marks.Mark.Assignments.Assignment.Resources.Resource',
 	'Gradebook.ReportingPeriods.ReportPeriod',

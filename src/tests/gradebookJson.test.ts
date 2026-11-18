@@ -32,8 +32,7 @@ const gradebook = {
 					calculatedScoreString: 'A',
 					gradeCalculationSummary: {
 						assignmentGradeCalc: [
-							{ type: 'Quiz', weight: '60%', points: '3', pointsPossible: '4' },
-							{ type: 'Test', weight: '40%', points: '9', pointsPossible: '10' }
+							{ type: 'Quiz', weight: '60%', points: '3', pointsPossible: '4' }
 						]
 					},
 					assignments: [assignment, { ...assignment, gradebookID: '123457', score: null }],
@@ -58,7 +57,7 @@ test('JSON gradebook round-trips through the legacy XML parser', () => {
 
 	const mark = course.Marks!.Mark[0]!;
 	expect(mark._CalculatedScoreString).toBe('A');
-	expect(mark.GradeCalculationSummary!.AssignmentGradeCalc[1]!._PointsPossible).toBe('10');
+	expect(mark.GradeCalculationSummary!.AssignmentGradeCalc[0]!._PointsPossible).toBe('4');
 	expect(mark.AssignmentsSinceLastAccess).toBeNull();
 
 	const [graded, ungraded] = mark.Assignments!.Assignment as [AssignmentEntity, AssignmentEntity];
