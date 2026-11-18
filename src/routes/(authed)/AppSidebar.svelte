@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { removeCourseType } from '$lib';
 	import { brand } from '$lib/brand';
-	import ObsoleteAlert from '$lib/components/ObsoleteAlert.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -141,10 +140,6 @@
 
 	<Sidebar.Content>
 		<Sidebar.Menu>
-			{#if !demoState.enabled}
-				<ObsoleteAlert />
-			{/if}
-
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="h-10 text-base">
 					{#snippet child({ props })}
