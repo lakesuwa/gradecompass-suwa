@@ -280,8 +280,9 @@ export class StudentAccount {
 		const json = await readJson(res, 'AttemptLogin');
 
 		if (json.error) throw new Error(json.error.message);
+		if (!json.access_token) throw new Error(`HTTP ${res.status} when requesting AttemptLogin`);
 
-		this.accessToken = json.access_token as string;
+		this.accessToken = json.access_token;
 	}
 
 	private async jsonRequest<T>(method: string, params: JsonObject): Promise<T> {
