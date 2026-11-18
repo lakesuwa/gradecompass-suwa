@@ -8,6 +8,8 @@ import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type { GradebookResult } from './types/Gradebook';
 import type { ReportCardResult } from './types/ReportCard';
 
+export const demoMockDomain = 'demo.gradecompass.com';
+
 export const Operation = {
 	Request: 'ProcessWebServiceRequest',
 	RequestMultiWeb: 'ProcessWebServiceRequestMultiWeb'
@@ -167,6 +169,78 @@ const webServiceRequestMultiWeb = <T>(
 export const parseGradebookXML = (resultStr: string) =>
 	convertEmptyElementToNull(parseResult<GradebookResult>(resultStr).Gradebook);
 
+type JsonObject = Record<string, unknown>;
+
+/** JSON key -> legacy XML element. Without `wrapper`, the elements are direct children. */
+const gradebookElements: Record<string, { tag: string; wrapper?: string; single?: true }> = {
+	reportingPeriods: { wrapper: 'ReportingPeriods', tag: 'ReportPeriod' },
+	reportingPeriod: { tag: 'ReportingPeriod', single: true },
+	courses: { wrapper: 'Courses', tag: 'Course' },
+	marks: { wrapper: 'Marks', tag: 'Mark' },
+	gradeCalculationSummary: { tag: 'GradeCalculationSummary', single: true },
+	assignmentGradeCalc: { tag: 'AssignmentGradeCalc' },
+	assignments: { wrapper: 'Assignments', tag: 'Assignment' },
+	assignmentsSinceLastAccess: { wrapper: 'AssignmentsSinceLastAccess', tag: 'Assignment' },
+	resources: { wrapper: 'Resources', tag: 'Resource' }
+};
+
+/** Scalar keys whose legacy attribute name is not the PascalCased JSON key */
+const gradebookAttributeNames: Record<string, string> = { url: '_url' };
+
+const isJsonObject = (value: unknown): value is JsonObject =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+
+function gradebookNode(json: JsonObject): JsonObject {
+	const node: JsonObject = {};
+
+	for (const [key, value] of Object.entries(json)) {
+		const element = gradebookElements[key];
+
+		if (!element) {
+			if (value !== null && value !== undefined && typeof value !== 'object') {
+				node[gradebookAttributeNames[key] ?? `_${key.charAt(0).toUpperCase()}${key.slice(1)}`] =
+					value;
+			}
+			continue;
+		}
+
+		const source =
+			key === 'gradeCalculationSummary' && Array.isArray(value)
+				? { assignmentGradeCalc: value }
+				: value;
+		const items = (Array.isArray(source) ? source : [source])
+			.filter(isJsonObject)
+			.map(gradebookNode);
+
+		if (element.single) {
+			node[element.tag] = items[0] ?? '';
+		} else if (element.wrapper) {
+			node[element.wrapper] = items.length ? { [element.tag]: items } : '';
+		} else if (items.length) {
+			node[element.tag] = items;
+		}
+	}
+
+	return node;
+}
+
+export const gradebookJsonToXML = (json: JsonObject) =>
+	builder.build({ Gradebook: gradebookNode(json) });
+
+interface JsonResponse {
+	error?: { message: string } | null;
+	data?: unknown;
+	access_token?: string;
+}
+
+async function readJson(res: Response, method: string): Promise<JsonResponse> {
+	try {
+		return await res.json();
+	} catch {
+		throw new Error(`HTTP ${res.status} when requesting ${method}`);
+	}
+}
+
 export class StudentAccount {
 	domain: string;
 	userID: string;
@@ -186,15 +260,91 @@ export class StudentAccount {
 		};
 	}
 
-	async checkLogin() {
-		await webServiceRequest<StudentInfoResult>('StudentInfo', this.credentials);
+	private accessToken?: string;
+
+	private async login() {
+		const basic = btoa(
+			String.fromCharCode(...new TextEncoder().encode(`${this.userID}:${this.password}`))
+		);
+
+		const res = await fetch(`/api/synergy/${this.domain}/AttemptLogin`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Basic ${basic}` },
+			body: JSON.stringify({
+				arguments: {
+					request: JSON.stringify({ userID: null, password: null, userType: 'Student' })
+				}
+			})
+		});
+		const json = await readJson(res, 'AttemptLogin');
+
+		if (json.error) throw new Error(json.error.message);
+
+		this.accessToken = json.access_token as string;
 	}
 
-	async gradebookRequest(reportPeriod?: number) {
-		// When a specific report period is requested, if it is not available Synergy returns the current report period
-		const params = reportPeriod ? { ReportPeriod: reportPeriod } : undefined;
+	private async jsonRequest<T>(method: string, params: JsonObject): Promise<T> {
+		const send = async () => {
+			if (!this.accessToken) await this.login();
 
-		return await fetchSoap(Operation.Request, MethodName.Gradebook, this.credentials, params);
+			return await fetch(`/api/synergy/${this.domain}/${method}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${this.accessToken}`
+				},
+				body: JSON.stringify({ arguments: { request: JSON.stringify(params) } })
+			});
+		};
+
+		let res = await send();
+		if (res.status === 401) {
+			this.accessToken = undefined;
+			res = await send();
+		}
+
+		const json = await readJson(res, method);
+
+		if (json.error) throw new Error(json.error.message);
+
+		return json.data as T;
+	}
+
+	async checkLogin() {
+		if (this.domain === demoMockDomain) {
+			await webServiceRequest<StudentInfoResult>('StudentInfo', this.credentials);
+		} else {
+			await this.login();
+		}
+	}
+
+	async gradebookXML(reportPeriod?: number) {
+		if (this.domain === demoMockDomain) {
+			// When a specific report period is requested, if it is not available Synergy returns the current report period
+			const params = reportPeriod ? { ReportPeriod: reportPeriod } : undefined;
+
+			const res = await fetchSoap(
+				Operation.Request,
+				MethodName.Gradebook,
+				this.credentials,
+				params
+			);
+
+			return unwrapEnvelope(await res.text(), Operation.Request);
+		}
+
+		const { traditionalGradebook } = await this.jsonRequest<{
+			traditionalGradebook: JsonObject | null;
+		}>(MethodName.Gradebook, {
+			reportPeriod: reportPeriod === undefined ? '' : String(reportPeriod),
+			concurrentSchOrgYearGU: '',
+			childIntID: 0,
+			languageCode: 'en'
+		});
+
+		if (!traditionalGradebook) throw new Error('Standards-based gradebooks are not supported');
+
+		return gradebookJsonToXML(traditionalGradebook);
 	}
 
 	async attendance() {
