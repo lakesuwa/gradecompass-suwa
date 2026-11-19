@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { LocalStorageKey } from '$lib';
-import { demoMockDomain } from '$lib/demo/demo.svelte';
+import { demoMockDomain } from '$lib/synergy';
 import type { ClientInit } from '@sveltejs/kit';
 import { writable, type Writable } from 'svelte/store';
 

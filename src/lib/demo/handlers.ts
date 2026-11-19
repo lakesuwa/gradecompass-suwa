@@ -1,7 +1,6 @@
-import { Operation, wrapEnvelope } from '$lib/synergy';
+import { demoMockDomain, Operation, wrapEnvelope } from '$lib/synergy';
 import { XMLParser } from 'fast-xml-parser';
 import { http, HttpResponse } from 'msw';
-import { demoMockDomain } from './demo.svelte';
 
 import attendanceXml from './data/Attendance.xml?raw';
 import gradebookXml from './data/Gradebook.xml?raw';

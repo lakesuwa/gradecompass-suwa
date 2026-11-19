@@ -4,7 +4,6 @@
 	import { LocalStorageKey } from '$lib';
 	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand, repoLink } from '$lib/brand';
-	import ObsoleteAlert from '$lib/components/ObsoleteAlert.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { demoState, openDemo } from '$lib/demo/demo.svelte';
@@ -69,12 +68,11 @@
 
 					<Card.Content>
 						<p>An advanced grade calculator.</p>
-
-						<ObsoleteAlert />
 					</Card.Content>
 
 					<Card.Footer class="flex gap-2">
-						<Button size="lg" variant="card" class="flex-1" onclick={openDemo}>
+						<Button href="/login" size="lg" variant="card" class="flex-1">Log in</Button>
+						<Button size="lg" class="flex-1" onclick={openDemo}>
 							<PlayIcon /> Try demo
 						</Button>
 					</Card.Footer>

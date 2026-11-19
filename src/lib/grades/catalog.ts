@@ -1,6 +1,6 @@
 import { LocalStorageKey } from '$lib';
 import { acc } from '$lib/account.svelte';
-import { Operation, parseGradebookXML, unwrapEnvelope } from '$lib/synergy';
+import { parseGradebookXML } from '$lib/synergy';
 import type { ReportPeriod } from '$lib/types/Gradebook';
 
 interface GradebookRecord {
@@ -58,16 +58,11 @@ export async function getGradebookRecord(onReceivingData?: () => void, reportPer
 	const { studentAccount } = acc;
 	if (!studentAccount) throw new Error('Cannot get gradebook: student account not loaded');
 
-	const res = await studentAccount.gradebookRequest(reportPeriod);
+	const xml = await studentAccount.gradebookXML(reportPeriod);
 
 	onReceivingData?.();
 
-	const envelopeStr = await res.text();
-
-	const record: GradebookRecord = {
-		xml: unwrapEnvelope(envelopeStr, Operation.Request),
-		lastRefresh: Date.now()
-	};
+	const record: GradebookRecord = { xml, lastRefresh: Date.now() };
 	return record;
 }
 
